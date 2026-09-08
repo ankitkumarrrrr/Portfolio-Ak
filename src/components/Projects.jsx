@@ -1,4 +1,5 @@
 import { useRef, useState, Suspense, lazy } from 'react'
+import ErrorBoundary from './ErrorBoundary'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
 // Lazy-load 3D scenes for performance
@@ -130,9 +131,11 @@ function ProjectCard({ project, index }) {
 
           {/* Three.js Canvas */}
           <div className="absolute inset-0 z-[1]">
-            <Suspense fallback={<SceneFallback />}>
-              {SceneComponent && <SceneComponent />}
-            </Suspense>
+            <ErrorBoundary fallback={null}>
+              <Suspense fallback={<SceneFallback />}>
+                {SceneComponent && <SceneComponent />}
+              </Suspense>
+            </ErrorBoundary>
           </div>
 
           {/* "Explore" hint on hover */}

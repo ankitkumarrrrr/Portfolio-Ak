@@ -1,5 +1,5 @@
-import { useRef, useMemo, useCallback } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useRef, useMemo, useCallback, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /* ─── GLSL Shaders ─── */
@@ -130,8 +130,6 @@ function FluidMesh() {
   const materialRef = useRef()
   const mouseRef = useRef({ x: 0, y: 0 })
   const targetMouseRef = useRef({ x: 0, y: 0 })
-  const { viewport } = useThree()
-
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
@@ -144,12 +142,9 @@ function FluidMesh() {
     targetMouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1
   }, [])
 
-  // Attach global listener
-  useMemo(() => {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousemove', handlePointerMove)
-      return () => window.removeEventListener('mousemove', handlePointerMove)
-    }
+  useEffect(() => {
+    window.addEventListener('mousemove', handlePointerMove)
+    return () => window.removeEventListener('mousemove', handlePointerMove)
   }, [handlePointerMove])
 
   useFrame((state) => {
@@ -197,8 +192,9 @@ export default function FluidBackground() {
       <Canvas
         camera={{ position: [0, 2.5, 5], fov: 45 }}
         dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, failIfMajorPerformanceCaveat: false }}
         style={{ background: 'transparent' }}
+        onCreated={({ gl }) => { gl.setClearColor(0x000000, 0) }}
       >
         <ambientLight intensity={0.15} />
         <directionalLight position={[5, 5, 5]} intensity={0.08} color="#E8E6E3" />

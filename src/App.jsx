@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import ErrorBoundary from './components/ErrorBoundary'
 import FluidBackground from './components/FluidBackground'
 import CustomCursor from './components/CustomCursor'
 import Header from './components/Header'
@@ -13,9 +14,11 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-charcoal">
       {/* Three.js fluid background */}
-      <Suspense fallback={null}>
-        <FluidBackground />
-      </Suspense>
+      <ErrorBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <FluidBackground />
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Noise texture overlay */}
       <div className="noise-overlay" />
