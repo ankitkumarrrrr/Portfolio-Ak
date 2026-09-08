@@ -28,3 +28,4 @@ serve.cjs
 start.sh
 server.cjs
 server.js
+.vercel

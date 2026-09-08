@@ -1,5 +1,26 @@
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useRef, useState, Suspense, lazy } from 'react'
+import { motion, useInView, AnimatePresence } from 'framer-motion'
+
+// Lazy-load 3D scenes for performance
+const ChessScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.ChessScene }))
+)
+const JobSwipeScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.JobSwipeScene }))
+)
+const IntelliExScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.IntelliExScene }))
+)
+const GestureSenseScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.GestureSenseScene }))
+)
+
+const scenes = {
+  'JobSwipe AI': JobSwipeScene,
+  IntelliEx: IntelliExScene,
+  'Chess.ai': ChessScene,
+  GestureSense: GestureSenseScene,
+}
 
 const projects = [
   {
@@ -54,10 +75,20 @@ const cardVariants = {
   }),
 }
 
+function SceneFallback() {
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-4 h-4 border border-vermilion/40 border-t-vermilion rounded-full animate-spin" />
+    </div>
+  )
+}
+
 function ProjectCard({ project, index }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
+  const [isHovered, setIsHovered] = useState(false)
   const isLarge = index === 0 || index === 3
+  const SceneComponent = scenes[project.title]
 
   return (
     <motion.div
@@ -68,83 +99,143 @@ function ProjectCard({ project, index }) {
       animate={isInView ? 'visible' : 'hidden'}
       className={`group relative ${isLarge ? 'md:col-span-2' : 'md:col-span-1'}`}
       data-cursor-hover
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative h-full p-6 md:p-8 border border-surface-light/30 bg-surface/20 backdrop-blur-sm transition-all duration-500 hover:border-cream/20 hover:bg-surface/40">
-        {/* Number */}
-        <span className="absolute top-6 right-6 md:top-8 md:right-8 font-serif text-4xl md:text-5xl text-cream/[0.04] font-light select-none">
-          {String(index + 1).padStart(2, '0')}
-        </span>
+      <div className="relative h-full border border-surface-light/30 bg-surface/20 backdrop-blur-sm transition-all duration-500 hover:border-cream/20 hover:bg-surface/40 overflow-hidden">
+        {/* ── 3D Scene Area ── */}
+        <div
+          className="relative w-full overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ height: isHovered ? '260px' : '140px' }}
+        >
+          {/* Gradient overlay that fades on hover */}
+          <div
+            className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-500"
+            style={{
+              background: isHovered
+                ? 'linear-gradient(to bottom, transparent 60%, rgba(10,10,11,0.3) 100%)'
+                : 'linear-gradient(to bottom, transparent 30%, rgba(10,10,11,0.85) 100%)',
+            }}
+          />
 
-        {/* Accent line */}
-        {project.accent && (
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-vermilion to-transparent" />
-        )}
+          {/* Subtle grid lines behind scene */}
+          <div
+            className="absolute inset-0 z-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(232,230,227,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(232,230,227,0.3) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
 
-        {/* Subtitle */}
-        <span className="text-[10px] font-display tracking-[0.25em] uppercase text-vermilion/80 mb-3 block">
-          {project.subtitle}
-        </span>
+          {/* Three.js Canvas */}
+          <div className="absolute inset-0 z-[1]">
+            <Suspense fallback={<SceneFallback />}>
+              {SceneComponent && <SceneComponent />}
+            </Suspense>
+          </div>
 
-        {/* Title */}
-        <h3 className="font-display text-2xl md:text-3xl font-semibold text-cream mb-4 group-hover:text-cream transition-colors">
-          {project.title}
-        </h3>
-
-        {/* Description */}
-        <p className="text-sm text-cream-dim/60 leading-relaxed mb-6 font-light max-w-xl">
-          {project.description}
-        </p>
-
-        {/* Tech tags */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {project.tech.map((t) => (
-            <span
-              key={t}
-              className="text-[10px] font-display tracking-wider uppercase px-3 py-1 border border-surface-light/50 text-cream-dim/50 rounded-none"
-            >
-              {t}
-            </span>
-          ))}
+          {/* "Explore" hint on hover */}
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20"
+              >
+                <span className="text-[9px] font-display tracking-[0.3em] uppercase text-cream/40">
+                  Interactive 3D
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Links */}
-        <div className="flex gap-4">
-          <a
-            href={project.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-display tracking-[0.15em] uppercase text-cream-dim/50 hover:text-vermilion transition-colors flex items-center gap-2"
-            data-cursor-hover
+        {/* ── Text Content ── */}
+        <div className="p-6 md:p-8 relative">
+          {/* Number */}
+          <span className="absolute top-6 right-6 md:top-8 md:right-8 font-serif text-4xl md:text-5xl text-cream/[0.04] font-light select-none">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+
+          {/* Accent line */}
+          {project.accent && (
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-vermilion to-transparent" />
+          )}
+
+          {/* Subtitle */}
+          <span className="text-[10px] font-display tracking-[0.25em] uppercase text-vermilion/80 mb-3 block">
+            {project.subtitle}
+          </span>
+
+          {/* Title */}
+          <h3 className="font-display text-2xl md:text-3xl font-semibold text-cream mb-4 group-hover:text-cream transition-colors">
+            {project.title}
+          </h3>
+
+          {/* Description — collapses when scene is active */}
+          <div
+            className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ maxHeight: isHovered ? '0px' : '120px', opacity: isHovered ? 0 : 1 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-            </svg>
-            Code
-          </a>
-          {project.live !== '#' && (
+            <p className="text-sm text-cream-dim/60 leading-relaxed mb-6 font-light max-w-xl">
+              {project.description}
+            </p>
+          </div>
+
+          {/* Tech tags */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {project.tech.map((t) => (
+              <span
+                key={t}
+                className="text-[10px] font-display tracking-wider uppercase px-3 py-1 border border-surface-light/50 text-cream-dim/50 rounded-none transition-colors duration-300 group-hover:border-cream/15"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+
+          {/* Links */}
+          <div className="flex gap-4">
             <a
-              href={project.live}
+              href={project.github}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs font-display tracking-[0.15em] uppercase text-cream-dim/50 hover:text-vermilion transition-colors flex items-center gap-2"
               data-cursor-hover
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
               </svg>
-              Live
+              Code
             </a>
-          )}
-        </div>
+            {project.live !== '#' && (
+              <a
+                href={project.live}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-display tracking-[0.15em] uppercase text-cream-dim/50 hover:text-vermilion transition-colors flex items-center gap-2"
+                data-cursor-hover
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+                Live
+              </a>
+            )}
+          </div>
 
-        {/* Hover arrow */}
-        <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-2 group-hover:translate-x-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-vermilion">
-            <line x1="7" y1="17" x2="17" y2="7" />
-            <polyline points="7 7 17 7 17 17" />
-          </svg>
+          {/* Hover arrow */}
+          <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-2 group-hover:translate-x-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-vermilion">
+              <line x1="7" y1="17" x2="17" y2="7" />
+              <polyline points="7 7 17 7 17 17" />
+            </svg>
+          </div>
         </div>
       </div>
     </motion.div>
