@@ -29,3 +29,4 @@ start.sh
 server.cjs
 server.js
 .vercel
+.env*
