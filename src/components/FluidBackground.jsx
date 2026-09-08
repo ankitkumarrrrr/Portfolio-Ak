@@ -1,4 +1,4 @@
-import { useRef, useMemo, useCallback, useEffect } from 'react'
+import { useRef, useMemo, useCallback, useEffect, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -98,23 +98,19 @@ const fragmentShader = `
   
   void main() {
     // Deep monochrome with subtle tonal variation
-    vec3 baseColor = vec3(0.04, 0.04, 0.045); // #0A0A0B-ish
-    vec3 midTone = vec3(0.08, 0.08, 0.085);   // Slightly lighter
-    vec3 highlight = vec3(0.14, 0.14, 0.15);   // Surface tone
+    vec3 baseColor = vec3(0.04, 0.04, 0.045);
+    vec3 midTone = vec3(0.08, 0.08, 0.085);
+    vec3 highlight = vec3(0.14, 0.14, 0.15);
     
-    // Mix based on elevation
     float t = smoothstep(-0.5, 0.5, vElevation);
     vec3 color = mix(baseColor, midTone, t);
     
-    // Subtle vermilion bleed at distortion peaks
     float vermilionBleed = smoothstep(0.3, 0.8, vDistortion);
     color = mix(color, vec3(1.0, 0.2, 0.0), vermilionBleed * 0.06);
     
-    // Edge darkening for depth
     float edgeFade = smoothstep(0.0, 0.7, length(vUv - 0.5));
     color = mix(color, baseColor * 0.5, edgeFade * 0.6);
     
-    // Very subtle grid line effect
     float gridX = smoothstep(0.98, 1.0, abs(sin(vUv.x * 60.0 + vElevation * 2.0)));
     float gridY = smoothstep(0.98, 1.0, abs(sin(vUv.y * 60.0 + vElevation * 2.0)));
     float grid = max(gridX, gridY) * 0.04;
@@ -137,7 +133,6 @@ function FluidMesh() {
   }), [])
 
   const handlePointerMove = useCallback((e) => {
-    // Convert screen coords to mesh space
     targetMouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1
     targetMouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1
   }, [])
@@ -153,18 +148,15 @@ function FluidMesh() {
     const time = state.clock.getElapsedTime()
     materialRef.current.uniforms.uTime.value = time
 
-    // Lerp mouse for smooth inertia
     const mouse = mouseRef.current
     const target = targetMouseRef.current
     mouse.x += (target.x - mouse.x) * 0.04
     mouse.y += (target.y - mouse.y) * 0.04
     materialRef.current.uniforms.uMouse.value.set(mouse.x * 2, mouse.y * 2)
 
-    // Ramp up intensity
     const intensity = materialRef.current.uniforms.uIntensity.value
     materialRef.current.uniforms.uIntensity.value = Math.min(intensity + 0.003, 1.0)
 
-    // Subtle camera breathing
     state.camera.position.x = Math.sin(time * 0.05) * 0.1
     state.camera.position.y = Math.cos(time * 0.07) * 0.05
     state.camera.lookAt(0, 0, 0)
@@ -185,8 +177,25 @@ function FluidMesh() {
   )
 }
 
-/* ─── Main Export ─── */
+/* ─── Main Export with internal error handling ─── */
 export default function FluidBackground() {
+  const [webglFailed, setWebglFailed] = useState(false)
+
+  // Check WebGL support upfront
+  useEffect(() => {
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+      if (!gl) {
+        setWebglFailed(true)
+      }
+    } catch {
+      setWebglFailed(true)
+    }
+  }, [])
+
+  if (webglFailed) return null
+
   return (
     <div className="fixed inset-0 z-0" style={{ cursor: 'none' }}>
       <Canvas
@@ -195,6 +204,7 @@ export default function FluidBackground() {
         gl={{ antialias: true, alpha: true, failIfMajorPerformanceCaveat: false }}
         style={{ background: 'transparent' }}
         onCreated={({ gl }) => { gl.setClearColor(0x000000, 0) }}
+        onError={() => setWebglFailed(true)}
       >
         <ambientLight intensity={0.15} />
         <directionalLight position={[5, 5, 5]} intensity={0.08} color="#E8E6E3" />
