@@ -7,12 +7,24 @@ export default function CustomCursor() {
   const [isHovering, setIsHovering] = useState(false)
   const [isClicking, setIsClicking] = useState(false)
   const [isHidden, setIsHidden] = useState(false)
+  const [isTouch, setIsTouch] = useState(false)
+
+  // Touch devices have no hover cursor — render nothing there
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)')
+    const update = () => setIsTouch(mq.matches)
+    update()
+    mq.addEventListener?.('change', update)
+    return () => mq.removeEventListener?.('change', update)
+  }, [])
 
   const springConfig = { damping: 25, stiffness: 300, mass: 0.5 }
   const x = useSpring(cursorX, springConfig)
   const y = useSpring(cursorY, springConfig)
 
   useEffect(() => {
+    if (isTouch) return undefined
+
     const move = (e) => {
       cursorX.set(e.clientX)
       cursorY.set(e.clientY)
@@ -51,7 +63,9 @@ export default function CustomCursor() {
       document.removeEventListener('mouseleave', leave)
       observer.disconnect()
     }
-  }, [])
+  }, [isTouch])
+
+  if (isTouch) return null
 
   return (
     <>

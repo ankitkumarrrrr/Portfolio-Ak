@@ -35,6 +35,14 @@ body {
   cursor: none;
 }
 
+/* Restore the native cursor on touch devices (no hover there) */
+@media (pointer: coarse) {
+  body,
+  body * {
+    cursor: auto;
+  }
+}
+
 ::selection {
   background: var(--color-vermilion);
   color: var(--color-charcoal);
@@ -103,6 +111,14 @@ body {
   cursor: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+}
+
+/* Larger tap targets on touch devices */
+@media (pointer: coarse) {
+  .magnetic-btn {
+    cursor: pointer;
+    padding: 0.9rem 1.75rem;
+  }
 }
 .magnetic-btn::before {
   content: '';

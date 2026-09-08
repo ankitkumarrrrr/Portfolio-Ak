@@ -1,4 +1,4 @@
-import { useRef, useState, Suspense, lazy } from 'react'
+import { useRef, useState, useEffect, Suspense, lazy } from 'react'
 import ErrorBoundary from './ErrorBoundary'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
@@ -23,6 +23,19 @@ const scenes = {
   GestureSense: GestureSenseScene,
 }
 
+/** True on touch/coarse-pointer devices (phones, tablets) */
+function useIsTouch() {
+  const [isTouch, setIsTouch] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)')
+    const update = () => setIsTouch(mq.matches)
+    update()
+    mq.addEventListener?.('change', update)
+    return () => mq.removeEventListener?.('change', update)
+  }, [])
+  return isTouch
+}
+
 const projects = [
   {
     title: 'JobSwipe AI',
@@ -31,7 +44,7 @@ const projects = [
       'A Tinder-style job application platform that parses resumes via Google Gemini, scrapes live listings from Remotive and HackerNews, locates recruiter emails, and sends personalized outreach — all automated.',
     tech: ['Next.js', 'React', 'Prisma', 'PostgreSQL', 'Google Gemini API', 'Razorpay'],
     live: '#',
-    github: 'https://github.com/ankitkumarrrrr',
+    github: 'https://github.com/ankitkumarrrrr/jobswipe-ai',
     accent: true,
   },
   {
@@ -50,7 +63,7 @@ const projects = [
       'A fully functional chess engine with human-vs-AI gameplay. Implemented Minimax search with Alpha-Beta pruning alongside a greedy evaluation function for intelligent move selection, with an interactive web-based interface.',
     tech: ['Python', 'Pygame', 'Minimax', 'Alpha-Beta Pruning'],
     live: '#',
-    github: 'https://github.com/ankitkumarrrrr',
+    github: 'https://github.com/ankitkumarrrrr/Chess.ai',
   },
   {
     title: 'GestureSense',
@@ -88,6 +101,10 @@ function ProjectCard({ project, index }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
   const [isHovered, setIsHovered] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const isTouch = useIsTouch()
+  // Desktop: hover reveals the scene. Touch: tap toggles it.
+  const active = isTouch ? isExpanded : isHovered
   const isLarge = index === 0 || index === 3
   const SceneComponent = scenes[project.title]
 
@@ -100,20 +117,24 @@ function ProjectCard({ project, index }) {
       animate={isInView ? 'visible' : 'hidden'}
       className={`group relative ${isLarge ? 'md:col-span-2' : 'md:col-span-1'}`}
       data-cursor-hover
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => !isTouch && setIsHovered(true)}
+      onMouseLeave={() => !isTouch && setIsHovered(false)}
     >
       <div className="relative h-full border border-surface-light/30 bg-surface/20 backdrop-blur-sm transition-all duration-500 hover:border-cream/20 hover:bg-surface/40 overflow-hidden">
         {/* ── 3D Scene Area ── */}
         <div
           className="relative w-full overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-          style={{ height: isHovered ? '260px' : '140px' }}
+          style={{ height: active ? '260px' : '140px' }}
+          onClick={isTouch ? () => setIsExpanded((v) => !v) : undefined}
+          role={isTouch ? 'button' : undefined}
+          aria-expanded={isTouch ? isExpanded : undefined}
+          aria-label={isTouch ? 'Toggle 3D preview' : undefined}
         >
-          {/* Gradient overlay that fades on hover */}
+          {/* Gradient overlay that fades when active */}
           <div
             className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-500"
             style={{
-              background: isHovered
+              background: active
                 ? 'linear-gradient(to bottom, transparent 60%, rgba(10,10,11,0.3) 100%)'
                 : 'linear-gradient(to bottom, transparent 30%, rgba(10,10,11,0.85) 100%)',
             }}
@@ -138,9 +159,9 @@ function ProjectCard({ project, index }) {
             </ErrorBoundary>
           </div>
 
-          {/* "Explore" hint on hover */}
+          {/* Hint — hover on desktop, tap state on touch */}
           <AnimatePresence>
-            {isHovered && (
+            {(active || isTouch) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -149,7 +170,7 @@ function ProjectCard({ project, index }) {
                 className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20"
               >
                 <span className="text-[9px] font-display tracking-[0.3em] uppercase text-cream/40">
-                  Interactive 3D
+                  {isTouch ? (isExpanded ? 'Tap to close' : 'Tap for 3D') : 'Interactive 3D'}
                 </span>
               </motion.div>
             )}
@@ -178,10 +199,13 @@ function ProjectCard({ project, index }) {
             {project.title}
           </h3>
 
-          {/* Description — collapses when scene is active */}
+          {/* Description — collapses on desktop hover; stays readable on touch */}
           <div
             className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{ maxHeight: isHovered ? '0px' : '120px', opacity: isHovered ? 0 : 1 }}
+            style={{
+              maxHeight: !isTouch && isHovered ? '0px' : '120px',
+              opacity: !isTouch && isHovered ? 0 : 1,
+            }}
           >
             <p className="text-sm text-cream-dim/60 leading-relaxed mb-6 font-light max-w-xl">
               {project.description}

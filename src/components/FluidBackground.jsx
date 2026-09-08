@@ -126,6 +126,9 @@ function FluidMesh() {
   const materialRef = useRef()
   const mouseRef = useRef({ x: 0, y: 0 })
   const targetMouseRef = useRef({ x: 0, y: 0 })
+  // Lower geometry resolution on touch devices for mobile GPUs
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  const segments = isTouch ? 64 : 128
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
@@ -164,7 +167,7 @@ function FluidMesh() {
 
   return (
     <mesh ref={meshRef} rotation={[-Math.PI * 0.35, 0, 0]} position={[0, -1.5, 0]}>
-      <planeGeometry args={[12, 12, 128, 128]} />
+      <planeGeometry args={[12, 12, segments, segments]} />
       <shaderMaterial
         ref={materialRef}
         vertexShader={vertexShader}

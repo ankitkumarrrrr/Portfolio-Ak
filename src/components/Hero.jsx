@@ -44,7 +44,7 @@ function TiltImage() {
       onMouseLeave={handleMouseLeave}
       animate={{ rotateX: tilt.x, rotateY: tilt.y }}
       transition={{ type: 'spring', damping: 20, stiffness: 150 }}
-      className="relative w-full aspect-[3/4] max-w-[420px] mx-auto md:mx-0"
+      className="relative w-full aspect-[3/4] max-w-[300px] sm:max-w-[380px] md:max-w-[420px] mx-auto md:mx-0"
       style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
       data-cursor-hover
     >
@@ -112,11 +112,11 @@ export default function Hero() {
     >
       <motion.div
         style={{ y: parallaxY, opacity }}
-        className="max-w-[1400px] mx-auto px-6 md:px-12 w-full"
+        className="max-w-[1400px] mx-auto px-5 sm:px-6 md:px-12 w-full"
       >
-        <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-12 md:gap-8 items-center min-h-[80vh]">
+        <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-12 md:gap-8 items-center md:min-h-[80vh]">
           {/* Left — Text */}
-          <div className="flex flex-col gap-6 md:gap-8 py-8">
+          <div className="flex flex-col gap-6 md:gap-8">
             {/* Eyebrow */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -224,7 +224,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2"
         >
           <span className="text-[9px] font-display tracking-[0.3em] uppercase text-cream-dim/30">
             Scroll
