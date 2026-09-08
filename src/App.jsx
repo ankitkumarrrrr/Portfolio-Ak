@@ -1,5 +1,7 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import ErrorBoundary from './components/ErrorBoundary'
+import Preloader from './components/Preloader'
 import FluidBackground from './components/FluidBackground'
 import CustomCursor from './components/CustomCursor'
 import Header from './components/Header'
@@ -11,6 +13,8 @@ import Experience from './components/Experience'
 import Contact from './components/Contact'
 
 export default function App() {
+  const [loaded, setLoaded] = useState(false)
+
   return (
     <div className="relative min-h-screen bg-charcoal">
       {/* Three.js fluid background */}
@@ -22,6 +26,11 @@ export default function App() {
 
       {/* Noise texture overlay */}
       <div className="noise-overlay" />
+
+      {/* Cinematic hello preloader */}
+      <AnimatePresence>
+        {!loaded && <Preloader onComplete={() => setLoaded(true)} />}
+      </AnimatePresence>
 
       {/* Custom cursor */}
       <CustomCursor />

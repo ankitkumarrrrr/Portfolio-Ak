@@ -21,6 +21,11 @@
   box-sizing: border-box;
 }
 
+/* Lock scroll while the preloader is up */
+body.preloading {
+  overflow: hidden;
+}
+
 html {
   scroll-behavior: smooth;
   scrollbar-width: thin;
