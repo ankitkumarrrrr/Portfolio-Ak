@@ -123,7 +123,7 @@ export default function Experience() {
             <div className="flex flex-col gap-4">
               {achievements.map((a, i) => (
                 <motion.div
-                  key={a.event}
+                  key={`${a.event}-${a.venue}`}
                   custom={i + 1}
                   variants={fadeUp}
                   initial="hidden"

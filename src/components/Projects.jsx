@@ -62,7 +62,7 @@ const projects = [
     description:
       'A fully functional chess engine with human-vs-AI gameplay. Implemented Minimax search with Alpha-Beta pruning alongside a greedy evaluation function for intelligent move selection, with an interactive web-based interface.',
     tech: ['Python', 'Pygame', 'Minimax', 'Alpha-Beta Pruning'],
-    live: '#',
+    live: 'https://chess-master-ai-delta.vercel.app',
     github: 'https://github.com/ankitkumarrrrr/Chess.ai',
   },
   {

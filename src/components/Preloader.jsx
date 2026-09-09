@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { playStartupChime, armChimeFallback } from '../lib/chime'
+import { playStartupChime, armChimeFallback, isAudioBlocked } from '../lib/chime'
 
 /*
  * Cinematic boot screen — an Apple-style cursive "hello" that draws itself
@@ -19,6 +19,7 @@ const HOLD = 0.55
 
 export default function Preloader({ onComplete }) {
   const doneRef = useRef(false)
+  const [soundHint, setSoundHint] = useState(false)
   const finish = () => {
     if (!doneRef.current) {
       doneRef.current = true
@@ -32,10 +33,30 @@ export default function Preloader({ onComplete }) {
     const t = setTimeout(() => {
       finish()
       // Soft Mac-style chime as the curtain starts to lift. If the browser
-      // blocks autoplay (no gesture yet), arm it to fire on first tap/key.
-      if (!playStartupChime()) armChimeFallback()
+      // blocks autoplay (no gesture yet), arm a persistent fallback that
+      // retries on the first tap/key until it actually sounds.
+      playStartupChime().then((ok) => {
+        if (!ok) armChimeFallback()
+      })
     }, total)
-    return () => clearTimeout(t)
+
+    // Autoplay policy holds? Show a subtle "tap for sound" hint and hide
+    // it the moment the visitor interacts (which fires the chime).
+    let hideHint = null
+    if (isAudioBlocked()) {
+      setSoundHint(true)
+      hideHint = () => setSoundHint(false)
+      window.addEventListener('pointerdown', hideHint, { once: true, passive: true })
+      window.addEventListener('keydown', hideHint, { once: true })
+    }
+
+    return () => {
+      clearTimeout(t)
+      if (hideHint) {
+        window.removeEventListener('pointerdown', hideHint)
+        window.removeEventListener('keydown', hideHint)
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -112,6 +133,24 @@ export default function Preloader({ onComplete }) {
       >
         Ankit Kumar — Portfolio
       </motion.span>
+
+      {/* Shown only when autoplay policy blocks the chime */}
+      {soundHint && (
+        <motion.div
+          className="mt-6 flex items-center gap-2.5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.6 }}
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-vermilion opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-vermilion" />
+          </span>
+          <span className="text-[10px] font-display tracking-[0.35em] uppercase text-cream-dim/50">
+            Tap anywhere for sound
+          </span>
+        </motion.div>
+      )}
     </motion.div>
   )
 }
