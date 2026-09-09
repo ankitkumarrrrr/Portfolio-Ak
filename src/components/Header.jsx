@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navLinks = [
@@ -56,6 +57,17 @@ export default function Header() {
                 <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-vermilion transition-all duration-300 hover:w-full" />
               </motion.a>
             ))}
+            <motion.a
+              href="/blog"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 + navLinks.length * 0.08, duration: 0.5 }}
+              className="relative text-sm font-body text-cream-dim hover:text-cream transition-colors duration-300 tracking-wide uppercase"
+              data-cursor-hover
+            >
+              Blog
+              <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-vermilion transition-all duration-300 hover:w-full" />
+            </motion.a>
           </nav>
 
           {/* Resume CTA */}
@@ -116,6 +128,17 @@ export default function Header() {
                 {link.label}
               </motion.a>
             ))}
+            <motion.a
+              href="/blog"
+              onClick={() => setMenuOpen(false)}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ delay: navLinks.length * 0.06, duration: 0.4 }}
+              className="font-display text-3xl font-semibold tracking-wide text-cream hover:text-vermilion transition-colors"
+            >
+              Blog
+            </motion.a>
           </motion.div>
         )}
       </AnimatePresence>

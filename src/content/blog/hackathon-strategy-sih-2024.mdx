@@ -1,0 +1,177 @@
+---
+title: 'How We Placed Top 10 at Smart India Hackathon 2024'
+date: '2025-01-15'
+readTime: '7 min'
+tags: ['Hackathon', 'Team Leadership', 'Strategy']
+---
+
+Smart India Hackathon (SIH) 2024 had 600+ teams at the national finals. Our team placed Top 10. This isn't a humblebrag — it's a breakdown of the technical decisions, team dynamics, and presentation strategy that got us there.
+
+## The Problem Statement
+
+**Category:** Education Technology  
+**Problem:** "Develop an AI-powered adaptive learning platform that personalizes content delivery based on student learning styles, pace, and knowledge gaps."
+
+Broad. Ambiguous. Classic SIH.
+
+## Team Composition (4 People)
+
+| Role | Person | Strength |
+|------|--------|----------|
+| **Tech Lead / Backend** | Me | Architecture, APIs, ML integration |
+| **Frontend Lead** | Priya | React, UX, data viz |
+| **ML Engineer** | Rahul | NLP, recommendation systems |
+| **Product / Presenter** | Ananya | Problem framing, storytelling, judges Q&A |
+
+**Key insight:** We had a dedicated *non-coding* presenter. Ananya didn't write a single line of production code during the hackathon. She owned the narrative, slides, demo script, and judge interactions. This was our force multiplier.
+
+## Technical Decisions (Made in First 2 Hours)
+
+### 1. Boring Stack, Bold Features
+
+```
+Frontend:  Next.js 14 + TypeScript + Tailwind + shadcn/ui
+Backend:   FastAPI + PostgreSQL + Redis
+ML:        Sentence-BERT embeddings + FAISS + LightGBM
+Infra:     Docker + Railway (zero-config deploy)
+Auth:      Clerk (drop-in, handles everything)
+```
+
+No Kubernetes, no microservices, no custom auth. Every minute on infra was a minute not building features.
+
+### 2. Adaptive Learning = Retrieval + Reranking
+
+We didn't train a custom model. We used a **two-stage pipeline**:
+
+```
+Student Query → Embedding (Sentence-BERT) → FAISS Vector Search (Top-50)
+                                    ↓
+                            LightGBM Reranker (features: difficulty, topic match, 
+                                              student history, prerequisite graph)
+                                    ↓
+                            Top-5 Personalized Recommendations
+```
+
+**Why this worked:** 
+- FAISS = sub-millisecond retrieval at scale
+- LightGBM = interpretable, fast inference, handles tabular features natively
+- Prerequisite graph = explicit knowledge structure (we built this from NCERT syllabus)
+
+### 3. Prerequisite Graph from Syllabus
+
+```python
+# ml/prerequisite_graph.py
+import networkx as nx
+from sentence_transformers import SentenceTransformer
+
+# Parse NCERT chapters → concepts → prerequisites
+G = nx.DiGraph()
+
+# Example: "Quadratic Equations" requires "Linear Equations", "Polynomials"
+G.add_edge("Linear Equations", "Quadratic Equations")
+G.add_edge("Polynomials", "Quadratic Equations")
+G.add_edge("Quadratic Equations", "Discriminant")
+G.add_edge("Quadratic Equations", "Nature of Roots")
+
+def get_learning_path(student_mastery: dict, target_concept: str) -> list[str]:
+    """Topological sort of missing prerequisites"""
+    missing = [c for c in nx.ancestors(G, target_concept) 
+               if student_mastery.get(c, 0) < 0.7]
+    return list(nx.topological_sort(G.subgraph(missing)))
+```
+
+This gave us **explainable recommendations**: "You should review Linear Equations before Quadratic Equations" — not "the model thinks you need this."
+
+## The 36-Hour Timeline
+
+### Hours 0-4: Foundation
+- [x] Repo + CI/CD + Railway deploy
+- [x] Auth (Clerk) + DB schema (Prisma)
+- [x] Basic UI shell: Dashboard, Library, Profile
+- [x] Embedding pipeline: PDF → chunks → vectors → FAISS
+
+### Hours 4-12: Core Features
+- [x] Content ingestion: NCERT PDFs → structured chapters
+- [x] Vector search API (`/search?q=...&student_id=...`)
+- [x] LightGBM training data generation (synthetic + heuristic labels)
+- [x] Student mastery tracking (spaced repetition algorithm)
+
+### Hours 12-24: Polish & Integration
+- [x] Adaptive quiz engine (difficulty adjusts in real-time)
+- [x] Learning path visualization (React Flow diagram)
+- [x] Offline-first PWA (service worker + IndexedDB)
+- [x] Admin panel for content management
+
+### Hours 24-30: Demo Preparation
+- [x] **Scripted demo flow** (Ananya wrote this, we built to match)
+- [x] Seed data: 3 student personas with realistic histories
+- [x] Edge case handling: empty states, loading skeletons, error toasts
+- [x] Performance audit: under 200ms p95 API latency
+
+### Hours 30-36: Buffer + Rehearsal
+- [x] Full dress rehearsal (twice)
+- [x] Judge Q&A prep (Ananya compiled 20 likely questions)
+- [x] Backup demo video (in case live demo failed)
+- [x] Sleep (4 hours each, staggered)
+
+## Demo Strategy: "Show, Don't Tell"
+
+**Our 3-minute demo script:**
+
+| Time | Screen | Narrative |
+|------|--------|-----------|
+| 0:00 | Login as "Arjun" (struggling 10th grader) | "Meet Arjun. He's failing Algebra." |
+| 0:20 | Dashboard shows "Recommended: Linear Equations" | "Our system detected his knowledge gap." |
+| 0:40 | Click → Learning path: Linear Eq → Poly → Quadratic | "Not just *what*, but *why* and *in what order*." |
+| 1:00 | Take adaptive quiz, get question wrong | "Watch the difficulty adjust in real-time." |
+| 1:20 | Next question easier, mastery bar updates | "Spaced repetition schedules review for tomorrow." |
+| 1:40 | Switch to "Priya" (advanced student) | "Same system, completely different path." |
+| 2:00 | Priya gets: Calculus → Optimization | "Advanced learners skip prerequisites they've mastered." |
+| 2:20 | Admin panel: upload new PDF, auto-chunked | "Teachers add content in seconds, not hours." |
+| 2:40 | Architecture slide (1 slide) | "Boring stack, bold results." |
+| 3:00 | **Thank you + QR to live demo** | |
+
+**Key:** Every click was rehearsed. No "let me just..." moments. The demo *was* the product.
+
+## Judge Q&A Preparation
+
+Ananya prepared answers for these (they asked 8 of 20):
+
+| Question | Our Answer |
+|----------|------------|
+| "How do you handle cold start for new students?" | "Diagnostic quiz (5 questions) → initial mastery vector → Bayesian update as they interact." |
+| "What if the prerequisite graph is wrong?" | "Graph is editable by teachers. We also learn edge weights from student success data." |
+| "How does this scale to 1M students?" | "FAISS scales to billions of vectors. LightGBM inference is under 5ms. Stateless API = horizontal scaling." |
+| "What about non-STEM subjects?" | "Embedding model is domain-agnostic. Prerequisite graph is the only domain-specific component." |
+| "How do you measure learning gain?" | "Pre/post assessment on same concept cluster. RCTs planned with partner schools." |
+| "What's your moat?" | "Not the model — the structured prerequisite graph + mastery tracking + teacher workflow." |
+| "How do you handle hallucination in content generation?" | "We don't generate content. We retrieve and sequence *verified* NCERT content." |
+| "What's the business model?" | "B2B: schools pay per student. B2C: freemium with advanced analytics." |
+
+## Team Dynamics That Worked
+
+1. **Daily 15-min standups** — Even at 3 AM. What did you do? What's next? Blockers?
+2. **Pair programming on critical path** — Me + Rahul on ML pipeline; Priya + Ananya on demo flow.
+3. **No heroics** — If someone was stuck >30 min, they asked. We swapped tasks freely.
+4. **Protected sleep** — 4 hours each, staggered. No all-nighters. Cognitive function > lines of code.
+5. **Ananya owned "external"** — Judges, mentors, organizers, food, logistics. We coded.
+
+## What We'd Do Differently
+
+1. **Earlier synthetic data generation** — LightGBM training data took 6 hours. Should've started at hour 2.
+2. **More realistic personas** — Our seed users were too clean. Real students have messier histories.
+3. **Accessibility audit** — We missed contrast ratios and keyboard nav. Judges didn't ask, but we knew.
+4. **Load testing** — We assumed Railway would handle it. Should've run `locust` against the API.
+
+## The Real Prize
+
+Top 10 got us:
+- ₹50,000 prize money (split 4 ways)
+- Direct interview offers from 3 sponsor companies
+- **The network** — 3 teammates, 20+ connections from other finalists, mentor relationships
+
+But the real win: **we shipped something real in 36 hours that solved a genuine problem.** The adaptive learning platform worked. Students could use it. Teachers could add content. The demo wasn't smoke and mirrors.
+
+---
+
+*Team: Ankit, Priya, Rahul, Ananya. SIH 2024 — Top 10 National Finalists.*

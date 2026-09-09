@@ -1,16 +1,11 @@
 import { Suspense, useState } from 'react'
+import { Outlet } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import ErrorBoundary from './components/ErrorBoundary'
 import Preloader from './components/Preloader'
 import FluidBackground from './components/FluidBackground'
 import CustomCursor from './components/CustomCursor'
 import Header from './components/Header'
-import Hero from './components/Hero'
-import About from './components/About'
-import Projects from './components/Projects'
-import Skills from './components/Skills'
-import Experience from './components/Experience'
-import Contact from './components/Contact'
 
 export default function App() {
   const [loaded, setLoaded] = useState(false)
@@ -38,14 +33,9 @@ export default function App() {
       {/* Header */}
       <Header />
 
-      {/* Main content */}
+      {/* Main content - either home page sections or child routes */}
       <main className="relative z-10">
-        <Hero />
-        <About />
-        <Projects />
-        <Skills />
-        <Experience />
-        <Contact />
+        <Outlet />
       </main>
     </div>
   )

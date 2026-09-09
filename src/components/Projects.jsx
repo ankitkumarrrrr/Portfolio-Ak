@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, Suspense, lazy } from 'react'
+import { Link } from 'react-router-dom'
 import ErrorBoundary from './ErrorBoundary'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
@@ -39,16 +40,18 @@ function useIsTouch() {
 const projects = [
   {
     title: 'JobSwipe AI',
+    slug: 'jobswipe-ai',
     subtitle: 'AI-Powered Job Automation',
     description:
       'A Tinder-style job application platform that parses resumes via Google Gemini, scrapes live listings from Remotive and HackerNews, locates recruiter emails, and sends personalized outreach — all automated.',
     tech: ['Next.js', 'React', 'Prisma', 'PostgreSQL', 'Google Gemini API', 'Razorpay'],
-    live: '#',
+    live: 'https://jobswipe-ai.vercel.app',
     github: 'https://github.com/ankitkumarrrrr/jobswipe-ai',
     accent: true,
   },
   {
     title: 'IntelliEx',
+    slug: 'intelliex',
     subtitle: 'AI Financial Trading Platform',
     description:
       'Built scalable Python ETL pipelines to ingest and validate live market data in PostgreSQL. Implemented technical momentum indicators and rule-based scoring logic to generate automated trading signals, backed by interactive financial dashboards.',
@@ -58,6 +61,7 @@ const projects = [
   },
   {
     title: 'Chess.ai',
+    slug: 'chess-ai',
     subtitle: 'Intelligent Game Engine',
     description:
       'A fully functional chess engine with human-vs-AI gameplay. Implemented Minimax search with Alpha-Beta pruning alongside a greedy evaluation function for intelligent move selection, with an interactive web-based interface.',
@@ -67,6 +71,7 @@ const projects = [
   },
   {
     title: 'GestureSense',
+    slug: 'gesturesense',
     subtitle: 'Computer Vision System',
     description:
       'Real-time hand gesture recognition using camera-based interaction. OpenCV-powered detection pipeline that classifies gestures with corresponding text output, built to handle varying lighting conditions.',
@@ -226,6 +231,17 @@ function ProjectCard({ project, index }) {
 
           {/* Links */}
           <div className="flex gap-4">
+            <Link
+              to={`/project/${project.slug}`}
+              className="text-xs font-display tracking-[0.15em] uppercase text-cream-dim/50 hover:text-vermilion transition-colors flex items-center gap-2"
+              data-cursor-hover
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="7 7 17 7 17 17" />
+              </svg>
+              Case Study
+            </Link>
             <a
               href={project.github}
               target="_blank"
