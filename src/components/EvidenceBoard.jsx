@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 /*
  * THE BOARD — a detective's evidence map, crime-scene style.
  * Every card carries an inked evidence illustration (hand-drawn SVG, no
- * white backgrounds anywhere) on dark charcoal paper. Cards are pinned
- * and connected by sagging red string that re-renders live while you drag.
+ * white backgrounds anywhere) on dark charcoal paper. On open, the red
+ * strings draw themselves one by one, like a detective connecting the
+ * dots. Pressing any card opens its declassified case file.
  *
+ *  - Open          → strings draw themselves in narrative order
  *  - Hover a card  → its connections glow, everything else dims
+ *  - Press a card  → read the full written case file for it
  *  - Drag a card   → strings follow in real time
  *  - Close         → X button or Escape
  */
@@ -28,7 +31,6 @@ const svgProps = {
   strokeLinejoin: 'round',
 }
 
-// Graduation cap + scroll (education)
 const ArtEducation = () => (
   <svg {...svgProps}>
     <path d="M50 14 L20 24 L50 34 L80 24 Z" stroke={S.stroke} strokeWidth="2.4" />
@@ -39,7 +41,6 @@ const ArtEducation = () => (
   </svg>
 )
 
-// Terminal with prompt + spark (AI developer)
 const ArtJob = () => (
   <svg {...svgProps}>
     <rect x="18" y="14" width="56" height="32" rx="2" stroke={S.stroke} strokeWidth="2.4" />
@@ -52,7 +53,6 @@ const ArtJob = () => (
   </svg>
 )
 
-// Trophy (SIH finalist)
 const ArtTrophy = () => (
   <svg {...svgProps}>
     <path d="M36 12 H64 V24 A14 13 0 0 1 36 24 Z" stroke={S.stroke} strokeWidth="2.4" />
@@ -64,7 +64,6 @@ const ArtTrophy = () => (
   </svg>
 )
 
-// Quadcopter (IIT Kanpur drone)
 const ArtDrone = () => (
   <svg {...svgProps}>
     <path d="M40 27 L30 19 M60 27 L70 19 M40 33 L30 41 M60 33 L70 41" stroke={S.dim} strokeWidth="2" />
@@ -77,7 +76,6 @@ const ArtDrone = () => (
   </svg>
 )
 
-// Stacked swipe cards (JobSwipe AI)
 const ArtSwipe = () => (
   <svg {...svgProps}>
     <rect x="26" y="10" width="38" height="26" rx="2.5" transform="rotate(-7 45 23)" stroke={S.dim} strokeWidth="2" />
@@ -88,7 +86,6 @@ const ArtSwipe = () => (
   </svg>
 )
 
-// Knight (Chess.ai)
 const ArtKnight = () => (
   <svg {...svgProps}>
     <path
@@ -102,7 +99,6 @@ const ArtKnight = () => (
   </svg>
 )
 
-// Target with arrow (motive)
 const ArtMotive = () => (
   <svg {...svgProps}>
     <circle cx="54" cy="32" r="17" stroke={S.stroke} strokeWidth="2.4" />
@@ -136,26 +132,98 @@ const INITIAL_CARDS = [
   { id: 'goal',     kind: 'note',  label: 'BUILD WHAT MATTERS',       caption: 'MOTIVE',            x: 46, y: 12, w: 162, h: 112, accent: false },
 ]
 
+// Ordered like an investigation: education → hackathon → prize → work →
+// exhibits → motive. The strings draw in exactly this sequence.
 const LINKS = [
   ['you', 'gitam'],
-  ['you', 'thesci'],
+  ['gitam', 'sih'],
   ['you', 'sih'],
+  ['sih', 'drone'],
   ['you', 'drone'],
+  ['you', 'thesci'],
+  ['thesci', 'jobswipe'],
   ['you', 'jobswipe'],
   ['you', 'chess'],
-  ['you', 'goal'],
-  ['gitam', 'sih'],
-  ['thesci', 'jobswipe'],
-  ['sih', 'drone'],
   ['chess', 'goal'],
+  ['you', 'goal'],
 ]
 
 const PIN_OFFSET = 12
 const TILT = { you: -2.5, gitam: 1.5, sih: -1.5, drone: 2, jobswipe: -2, chess: 1.5, goal: -1.5, thesci: -1 }
 
+/* ── Case files — the written thing, shown on press ── */
+
+const DETAILS = {
+  you: {
+    stamp: 'SUBJECT PROFILE',
+    body: [
+      'Ankit Kumar — Computer Science undergraduate at GITAM University, Visakhapatnam. Builds at the intersection of AI, computer vision, and full-stack engineering.',
+      'Evidence places him at national hackathons, inside live trading dashboards, and behind a chess engine that plays back. Works with real data, real users, and real deadlines.',
+      'Status: open to internships, collaborations, and interesting problems.',
+    ],
+  },
+  gitam: {
+    stamp: 'EDUCATION RECORD',
+    body: [
+      'B.Tech in Computer Science & Engineering, GITAM University — 2022 to 2026.',
+      'Maintaining a 7.6 CGPA while shipping real software on the side. Coursework covers data structures, DBMS, operating systems, and networks — but the sharpest training came from building things the syllabus never asked for.',
+    ],
+  },
+  sih: {
+    stamp: 'COMPETITION RECORD',
+    body: [
+      'Smart India Hackathon 2024 — Top 10 Finalist, national level.',
+      'Cross-functional team, real-world education solution, brutally competitive timelines. Outlasted hundreds of teams from across the country to reach the national top ten.',
+    ],
+  },
+  drone: {
+    stamp: 'AWARD RECORD',
+    body: [
+      'AeroVision Drone Project — 2nd Prize at IIT Kanpur; Runner-Up at IISc Kerala.',
+      'A computer-vision pipeline for drone systems: sensor integration, embedded constraints, and image processing that had to work under contest pressure — not just in slides.',
+    ],
+  },
+  thesci: {
+    stamp: 'EMPLOYMENT RECORD',
+    body: [
+      'AI Developer at TheSci SolCielo Innovacion — Dec 2025 to present.',
+      'Built Python ETL pipelines ingesting, cleaning, and validating live market data into PostgreSQL. Wrote technical momentum indicators and rule-based scoring logic that generate automated trading signals. Shipped low-latency, interactive financial dashboards for real-time analysis.',
+    ],
+  },
+  jobswipe: {
+    stamp: 'EXHIBIT A',
+    body: [
+      'JobSwipe AI — a Tinder-style job application platform.',
+      'Google Gemini parses resumes; scrapers pull live listings from Remotive and HackerNews; recruiter emails are located; personalized outreach is sent — all automated. Payments via Razorpay.',
+      'Stack: Next.js, React, Prisma, PostgreSQL. Live at jobswipe-ai.vercel.app.',
+    ],
+  },
+  chess: {
+    stamp: 'EXHIBIT B',
+    body: [
+      'Chess.ai — a fully functional chess engine with human-vs-AI play.',
+      'Minimax search with Alpha–Beta pruning, a greedy evaluation function for move selection, and an interactive web board.',
+      'Play it live at chess-master-ai-delta.vercel.app.',
+    ],
+  },
+  goal: {
+    stamp: 'MOTIVE',
+    body: [
+      'Build things that matter.',
+      'The through-line across every exhibit: real data, real users, real constraints. Not chasing stacks or trends — chasing problems worth solving, then solving them end to end.',
+    ],
+  },
+}
+
+/* String-draw choreography */
+const DRAW_START = 0.5 // cards land first
+const DRAW_STAGGER = 0.26
+const DRAW_DURATION = 0.85
+
 export default function EvidenceBoard({ open, onClose }) {
   const [cards, setCards] = useState(INITIAL_CARDS)
   const [hovered, setHovered] = useState(null)
+  const [memo, setMemo] = useState(null)
   const dragRef = useRef(null)
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
 
@@ -165,10 +233,16 @@ export default function EvidenceBoard({ open, onClose }) {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Escape closes the memo first, then the board
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      setMemo((m) => {
+        if (m) return null
+        onClose()
+        return m
+      })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -184,7 +258,7 @@ export default function EvidenceBoard({ open, onClose }) {
 
   const strings = useMemo(
     () =>
-      LINKS.map(([a, b]) => {
+      LINKS.map(([a, b], idx) => {
         const pa = pos[a]
         const pb = pos[b]
         if (!pa || !pb) return null
@@ -197,6 +271,7 @@ export default function EvidenceBoard({ open, onClose }) {
           key: `${a}~${b}`,
           a,
           b,
+          idx,
           d: `M ${ax} ${ay} Q ${(ax + bx) / 2} ${(ay + by) / 2 + sag} ${bx} ${by}`,
           ax,
           ay,
@@ -225,17 +300,23 @@ export default function EvidenceBoard({ open, onClose }) {
     [size]
   )
 
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null
-    window.removeEventListener('pointermove', onPointerMove)
-    window.removeEventListener('pointerup', onPointerUp)
-  }, [onPointerMove]) // eslint-disable-line react-hooks/exhaustive-deps
+  const onPointerUp = useCallback(
+    (e) => {
+      if (!dragRef.current) return
+      const { id, sx, sy } = dragRef.current
+      dragRef.current = null
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      // A press, not a drag (< 6px of travel) → open the case file
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < 6) setMemo(id)
+    },
+    [onPointerMove] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const onPointerDown = useCallback(
     (e, card) => {
-      e.preventDefault()
       const m = pos[card.id]
-      dragRef.current = { id: card.id, dx: e.clientX - m.x, dy: e.clientY - m.y }
+      dragRef.current = { id: card.id, dx: e.clientX - m.x, dy: e.clientY - m.y, sx: e.clientX, sy: e.clientY }
       setHovered(card.id)
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
@@ -244,6 +325,9 @@ export default function EvidenceBoard({ open, onClose }) {
   )
 
   if (!open) return null
+
+  const memoCard = memo ? cards.find((c) => c.id === memo) : null
+  const memoDetail = memo ? DETAILS[memo] : null
 
   return (
     <motion.div
@@ -282,33 +366,64 @@ export default function EvidenceBoard({ open, onClose }) {
 
       {/* Hint */}
       <p className="absolute bottom-4 left-0 right-0 z-20 text-center text-[10px] font-display tracking-[0.3em] uppercase text-cream-dim/30 pointer-events-none">
-        Hover to trace a thread · Drag any card to rewire the case
+        Hover to trace a thread · Press a card to read its file · Drag to rewire the case
       </p>
 
-      {/* Strings layer */}
+      {/* Strings layer — draws itself one by one on open */}
       <svg className="absolute inset-0 z-[5] pointer-events-none" width={size.w} height={size.h}>
         {strings.map((s) => {
           const hot = hovered && (s.a === hovered || s.b === hovered)
+          const delay = DRAW_START + s.idx * DRAW_STAGGER
           return (
             <g key={s.key}>
-              <path d={s.d} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth={3} strokeLinecap="round" transform="translate(2 3)" />
-              <path
+              <motion.path
+                d={s.d}
+                fill="none"
+                stroke="rgba(0,0,0,0.45)"
+                strokeWidth={3}
+                strokeLinecap="round"
+                transform="translate(2 3)"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay, duration: DRAW_DURATION, ease: 'easeInOut' }}
+              />
+              <motion.path
                 d={s.d}
                 fill="none"
                 stroke={hot ? '#E4572E' : 'rgba(196,48,43,0.5)'}
                 strokeWidth={hot ? 2 : 1.3}
                 strokeLinecap="round"
                 style={hot ? { filter: 'drop-shadow(0 0 6px rgba(228,87,46,0.7))' } : undefined}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay, duration: DRAW_DURATION, ease: 'easeInOut' }}
               />
-              <circle cx={s.ax} cy={s.ay} r={2.6} fill="#E8E6E3" opacity={0.85} />
-              <circle cx={s.bx} cy={s.by} r={2.6} fill="#E8E6E3" opacity={0.85} />
+              {/* pin heads pop as their string arrives */}
+              <motion.circle
+                cx={s.ax}
+                cy={s.ay}
+                r={2.6}
+                fill="#E8E6E3"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 0.85, scale: 1 }}
+                transition={{ delay: delay + DRAW_DURATION * 0.9, duration: 0.25 }}
+              />
+              <motion.circle
+                cx={s.bx}
+                cy={s.by}
+                r={2.6}
+                fill="#E8E6E3"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 0.85, scale: 1 }}
+                transition={{ delay: delay + DRAW_DURATION * 0.9, duration: 0.25 }}
+              />
             </g>
           )
         })}
       </svg>
 
       {/* Cards */}
-      {cards.map((c) => {
+      {cards.map((c, i) => {
         const m = pos[c.id]
         const isHot = hovered === c.id
         const isConnected = hovered && LINKS.some(([a, b]) => (a === hovered && b === c.id) || (b === hovered && a === c.id))
@@ -336,7 +451,7 @@ export default function EvidenceBoard({ open, onClose }) {
             />
 
             {c.kind === 'photo' ? (
-              /* Subject card — real photo on a dark frame, no white anywhere */
+              /* Subject card — real photo on a dark frame */
               <div className="w-full h-full bg-[#141417] border border-cream/15 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
                 <div className="w-full h-[calc(100%-34px)] overflow-hidden">
                   <img src="/ankit-photo.jpg" alt="" className="w-full h-full object-cover object-top" draggable={false} />
@@ -347,7 +462,7 @@ export default function EvidenceBoard({ open, onClose }) {
                 {c.accent && <span className="absolute top-2 right-2 text-sm leading-none text-vermilion">★</span>}
               </div>
             ) : (
-              /* Evidence card — dark charcoal paper, inked illustration, no white */
+              /* Evidence card — dark charcoal paper, inked illustration */
               <div className="w-full h-full bg-[#1D1D21] border border-cream/15 shadow-[0_10px_30px_rgba(0,0,0,0.6)] flex flex-col">
                 <div className="flex-1 min-h-0 px-3 pt-3">
                   {Art && <Art />}
@@ -359,11 +474,85 @@ export default function EvidenceBoard({ open, onClose }) {
                     {c.caption}
                   </p>
                 </div>
+                {/* readable marker */}
+                <span className="absolute bottom-1.5 right-2 text-[10px] leading-none text-cream-dim/30 group-hover:text-vermilion">
+                  ＋
+                </span>
               </div>
             )}
           </motion.div>
         )
       })}
+
+      {/* Case file memo — the written thing, on press */}
+      <AnimatePresence>
+        {memoCard && memoDetail && (
+          <motion.div
+            className="absolute inset-0 z-30 flex items-center justify-center px-6 bg-charcoal/70 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setMemo(null)}
+          >
+            <motion.div
+              className="relative w-full max-w-lg bg-[#17171A] border border-cream/15 shadow-[0_30px_80px_rgba(0,0,0,0.7)]"
+              initial={{ opacity: 0, y: 30, scale: 0.96, rotate: -1 }}
+              animate={{ opacity: 1, y: 0, scale: 1, rotate: -0.5 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* DECLASSIFIED stamp */}
+              <motion.span
+                className="absolute -top-3 right-5 z-10 border-2 border-vermilion text-vermilion text-[10px] font-display tracking-[0.3em] uppercase px-2.5 py-1 bg-[#17171A] rotate-6"
+                initial={{ opacity: 0, scale: 1.6 }}
+                animate={{ opacity: 0.9, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.25, ease: 'easeOut' }}
+              >
+                Declassified
+              </motion.span>
+
+              {/* Header art / photo */}
+              {memo === 'you' ? (
+                <div className="h-44 overflow-hidden border-b border-cream/10">
+                  <img src="/ankit-photo.jpg" alt="" className="w-full h-full object-cover object-top" draggable={false} />
+                </div>
+              ) : (
+                <div className="h-28 px-6 pt-5 border-b border-cream/10">
+                  {ART[memo] && <div className="h-full max-w-[220px] mx-auto">{ART[memo]}</div>}
+                </div>
+              )}
+
+              <div className="p-6 md:p-7">
+                <p className="text-[10px] font-display tracking-[0.35em] uppercase text-vermilion">{memoDetail.stamp}</p>
+                <h3 className="font-serif text-2xl md:text-3xl text-cream font-light mt-2 mb-4">{memoCard.label}</h3>
+                <div className="flex flex-col gap-3">
+                  {memoDetail.body.map((p, i) => (
+                    <motion.p
+                      key={i}
+                      className="text-sm md:text-[15px] text-cream-dim/70 leading-relaxed font-light"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 + i * 0.1, duration: 0.4 }}
+                    >
+                      {p}
+                    </motion.p>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setMemo(null)}
+                  className="mt-6 text-[10px] font-display tracking-[0.25em] uppercase text-cream-dim/50 hover:text-vermilion transition-colors"
+                  data-cursor-hover
+                >
+                  ← Back to the board
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
