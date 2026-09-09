@@ -17,9 +17,27 @@ const DRAW_DELAY = 0.35
 const DRAW_DURATION = 2.1
 const HOLD = 0.55
 
+/**
+ * The cinematic hello plays once per browser session. Navigating back to
+ * the home page should return you instantly where you were — not replay
+ * the boot sequence. sessionStorage survives reloads but clears when the
+ * tab closes, so every new visit still gets the full experience.
+ */
+function helloAlreadyShown() {
+  try {
+    if (sessionStorage.getItem('ak-hello-shown') === '1') return true
+    sessionStorage.setItem('ak-hello-shown', '1')
+    return false
+  } catch {
+    return false
+  }
+}
+
 export default function Preloader({ onComplete }) {
   const doneRef = useRef(false)
   const [soundHint, setSoundHint] = useState(false)
+  // Computed once at mount: true means skip the animation entirely.
+  const [skip] = useState(helloAlreadyShown)
   const finish = () => {
     if (!doneRef.current) {
       doneRef.current = true
@@ -28,6 +46,10 @@ export default function Preloader({ onComplete }) {
   }
 
   useEffect(() => {
+    if (skip) {
+      finish()
+      return
+    }
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const total = reduced ? 700 : (DRAW_DELAY + DRAW_DURATION + HOLD) * 1000
     const t = setTimeout(() => {
@@ -59,6 +81,9 @@ export default function Preloader({ onComplete }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Session already saw the hello — reveal the site immediately, no curtain.
+  if (skip) return null
 
   const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 

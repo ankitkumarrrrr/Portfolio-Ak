@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navLinks = [
@@ -10,9 +10,25 @@ const navLinks = [
   { label: 'Contact', href: '#contact' },
 ]
 
+// Animate a router Link so internal navigation stays client-side
+// (plain <a href> triggers full page reloads and breaks back/forward).
+const MotionLink = motion.create ? motion.create(Link) : Link
+
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Section anchors (#about, #projects…) only exist on the home page.
+  // From any other route, navigate home first, then jump to the section.
+  const handleSection = (e, href) => {
+    setMenuOpen(false)
+    if (location.pathname !== '/') {
+      e.preventDefault()
+      navigate(`/${href}`)
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -34,12 +50,12 @@ export default function Header() {
       >
         <div className="max-w-[1400px] mx-auto px-6 md:px-12 flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <a href="#" className="relative group" data-cursor-hover>
+          <Link to="/" className="relative group" data-cursor-hover>
             <span className="font-display font-bold text-lg md:text-xl tracking-wider text-cream">
               A<span className="text-vermilion">.</span>K
             </span>
             <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-vermilion transition-all duration-300 group-hover:w-full" />
-          </a>
+          </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
@@ -47,6 +63,7 @@ export default function Header() {
               <motion.a
                 key={link.label}
                 href={link.href}
+                onClick={(e) => handleSection(e, link.href)}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + i * 0.08, duration: 0.5 }}
@@ -57,8 +74,8 @@ export default function Header() {
                 <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-vermilion transition-all duration-300 hover:w-full" />
               </motion.a>
             ))}
-            <motion.a
-              href="/blog"
+            <MotionLink
+              to="/blog"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + navLinks.length * 0.08, duration: 0.5 }}
@@ -67,7 +84,7 @@ export default function Header() {
             >
               Blog
               <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-vermilion transition-all duration-300 hover:w-full" />
-            </motion.a>
+            </MotionLink>
           </nav>
 
           {/* Resume CTA */}
@@ -118,7 +135,7 @@ export default function Header() {
               <motion.a
                 key={link.label}
                 href={link.href}
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => handleSection(e, link.href)}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -128,8 +145,8 @@ export default function Header() {
                 {link.label}
               </motion.a>
             ))}
-            <motion.a
-              href="/blog"
+            <MotionLink
+              to="/blog"
               onClick={() => setMenuOpen(false)}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -138,7 +155,7 @@ export default function Header() {
               className="font-display text-3xl font-semibold tracking-wide text-cream hover:text-vermilion transition-colors"
             >
               Blog
-            </motion.a>
+            </MotionLink>
           </motion.div>
         )}
       </AnimatePresence>
