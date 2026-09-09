@@ -1056,3 +1056,345 @@ export function GestureSenseScene() {
     </Canvas>
   )
 }
+
+/* ───────────────────────────────────────────────
+   Hyperlocal Hand Scene — 3D neighborhood map:
+   errand pin → tasker pin, live route dots, GPS
+   pulses, and a floating errand box
+   ─────────────────────────────────────────────── */
+
+const ROUTE_A = { x: -0.95, z: 0.5 }
+const ROUTE_B = { x: 0.95, z: -0.45 }
+const ROUTE_MID = { x: 0, y: 0.62, z: 0.1 }
+
+function routePoint(t) {
+  const ax = ROUTE_A.x, az = ROUTE_A.z
+  const bx = ROUTE_B.x, bz = ROUTE_B.z
+  const x1 = ax + (ROUTE_MID.x - ax) * t
+  const z1 = az + (ROUTE_MID.z - az) * t
+  const y1 = 0.06 + (ROUTE_MID.y - 0.06) * t
+  const x2 = ROUTE_MID.x + (bx - ROUTE_MID.x) * t
+  const z2 = ROUTE_MID.z + (bz - ROUTE_MID.z) * t
+  const y2 = ROUTE_MID.y + (0.06 - ROUTE_MID.y) * t
+  return { x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t, z: z1 + (z2 - z1) * t }
+}
+
+function MapPin({ x, z, color }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.16, 0]}>
+        <coneGeometry args={[0.09, 0.3, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 0.38, 0]}>
+        <sphereGeometry args={[0.085, 16, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+function PulseRing({ x, z, offset }) {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.getElapsedTime()
+    const phase = (t * 0.55 + offset) % 1
+    ref.current.scale.setScalar(0.4 + phase * 1.7)
+    ref.current.material.opacity = 0.5 * (1 - phase)
+  })
+  return (
+    <mesh ref={ref} position={[x, 0.03, z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.15, 0.19, 32]} />
+      <meshStandardMaterial color="#E4572E" emissive="#E4572E" emissiveIntensity={0.6} transparent opacity={0.5} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
+function RouteDots() {
+  const group = useRef()
+  const N = 16
+  useFrame((state) => {
+    if (!group.current) return
+    const t = state.clock.getElapsedTime()
+    group.current.children.forEach((dot, i) => {
+      const p = (i / N + t * 0.1) % 1
+      const pt = routePoint(p)
+      dot.position.set(pt.x, pt.y + 0.05, pt.z)
+      dot.scale.setScalar(0.7 + 0.5 * (0.5 + 0.5 * Math.sin(t * 4 + i)))
+    })
+  })
+  return (
+    <group ref={group}>
+      {Array.from({ length: N }).map((_, i) => (
+        <mesh key={i}>
+          <sphereGeometry args={[0.035, 8, 8]} />
+          <meshStandardMaterial color="#E4572E" emissive="#E4572E" emissiveIntensity={0.9} transparent opacity={0.85} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function ErrandBox() {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.getElapsedTime()
+    ref.current.position.y = 0.72 + Math.sin(t * 1.6) * 0.06
+    ref.current.rotation.y = t * 0.8
+    ref.current.rotation.x = Math.sin(t * 0.9) * 0.15
+  })
+  return (
+    <mesh ref={ref} position={[ROUTE_A.x, 0.72, ROUTE_A.z]}>
+      <boxGeometry args={[0.16, 0.16, 0.16]} />
+      <meshStandardMaterial color="#E8E6E3" emissive="#E8E6E3" emissiveIntensity={0.12} roughness={0.5} />
+    </mesh>
+  )
+}
+
+function MapGrid() {
+  const tiles = useMemo(() => {
+    const arr = []
+    for (let gx = -3; gx <= 3; gx++) {
+      for (let gz = -3; gz <= 3; gz++) {
+        arr.push({
+          key: `${gx}-${gz}`,
+          x: gx * 0.34,
+          z: gz * 0.34,
+          tone: (gx + gz) % 2 === 0 ? '#1D2025' : '#22262D',
+        })
+      }
+    }
+    return arr
+  }, [])
+  return (
+    <group>
+      {tiles.map((tl) => (
+        <mesh key={tl.key} position={[tl.x, 0, tl.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.31, 0.31]} />
+          <meshStandardMaterial color={tl.tone} roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function MapWorld() {
+  const group = useRef()
+  useFrame((state) => {
+    if (!group.current) return
+    const t = state.clock.getElapsedTime()
+    group.current.rotation.y = Math.sin(t * 0.25) * 0.18
+  })
+  return (
+    <group ref={group} rotation={[-0.52, 0, 0]} position={[0, -0.35, 0]}>
+      <MapGrid />
+      <MapPin x={ROUTE_A.x} z={ROUTE_A.z} color="#E8E6E3" />
+      <MapPin x={ROUTE_B.x} z={ROUTE_B.z} color="#E4572E" />
+      <PulseRing x={ROUTE_B.x} z={ROUTE_B.z} offset={0} />
+      <PulseRing x={ROUTE_B.x} z={ROUTE_B.z} offset={0.5} />
+      <RouteDots />
+      <ErrandBox />
+    </group>
+  )
+}
+
+export function HyperlocalScene() {
+  return (
+    <Canvas camera={{ position: [0, 0.5, 4.1], fov: 32 }} dpr={[1, 1.5]}>
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[4, 6, 4]} intensity={0.8} color="#ffeedd" />
+      <pointLight position={[-2, 2, 2]} intensity={1.2} color="#E4572E" distance={6} />
+      <MapWorld />
+    </Canvas>
+  )
+}
+
+/* ───────────────────────────────────────────────
+   LearnReels Scene — a phone cycling vertical reel
+   cards with play buttons, live chat pings, and an
+   upload progress bar (media pipeline)
+   ─────────────────────────────────────────────── */
+
+const REEL_ACCENTS = ['#E4572E', '#38BDF8', '#10B981']
+
+function ReelCard({ index }) {
+  const group = useRef()
+  const accent = REEL_ACCENTS[index % 3]
+
+  useFrame((state) => {
+    if (!group.current) return
+    const t = state.clock.getElapsedTime()
+    const cycle = 3.6
+    const p = ((t / cycle + index / 3) % 1)
+    let y, fade
+    if (p < 0.32) {
+      const e = p / 0.32
+      const ease = 1 - Math.pow(1 - e, 3)
+      y = -1.15 + ease * 1.35
+      fade = ease
+    } else if (p < 0.68) {
+      y = 0.2 + Math.sin(t * 1.2 + index) * 0.02
+      fade = 1
+    } else {
+      const e = (p - 0.68) / 0.32
+      const ease = e * e
+      y = 0.2 + ease * 1.15
+      fade = 1 - ease
+    }
+    group.current.position.y = y
+    group.current.scale.setScalar(0.55 + 0.45 * fade)
+    group.current.rotation.z = Math.sin(t * 0.8 + index * 2) * 0.05 * (1 - fade * 0.5)
+    group.current.traverse((o) => {
+      if (o.material && o.userData.baseOpacity !== undefined) {
+        o.material.opacity = o.userData.baseOpacity * Math.max(0, fade)
+      }
+    })
+  })
+
+  return (
+    <group
+      ref={group}
+      onBeforeRender={() => {
+        if (group.current && !group.current.userData.basesSaved) {
+          group.current.traverse((o) => {
+            if (o.material && o.userData.baseOpacity === undefined) {
+              o.userData.baseOpacity = o.material.opacity
+            }
+          })
+          group.current.userData.basesSaved = true
+        }
+      }}
+    >
+      <mesh>
+        <planeGeometry args={[1.06, 1.44]} />
+        <meshStandardMaterial color="#1B1D24" emissive={accent} emissiveIntensity={0.05} transparent opacity={0.96} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0, 0.008]}>
+        <planeGeometry args={[0.94, 1.32]} />
+        <meshStandardMaterial color={accent} transparent opacity={0.14} />
+      </mesh>
+      {/* play button */}
+      <mesh position={[0, 0, 0.016]}>
+        <circleGeometry args={[0.15, 24]} />
+        <meshStandardMaterial color="#0B0C10" transparent opacity={0.85} roughness={0.3} />
+      </mesh>
+      <mesh position={[0.02, 0, 0.02]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.075, 0.13, 3]} />
+        <meshStandardMaterial color="#E8E6E3" emissive="#E8E6E3" emissiveIntensity={0.45} transparent opacity={0.95} />
+      </mesh>
+      {/* reel caption bars */}
+      <mesh position={[-0.18, -0.52, 0.016]}>
+        <planeGeometry args={[0.5, 0.05]} />
+        <meshStandardMaterial color="#E8E6E3" transparent opacity={0.35} />
+      </mesh>
+      <mesh position={[-0.26, -0.6, 0.016]}>
+        <planeGeometry args={[0.34, 0.04]} />
+        <meshStandardMaterial color="#E8E6E3" transparent opacity={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+function ChatPing({ offset, color }) {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.getElapsedTime()
+    const a = t * 0.9 + offset
+    ref.current.position.set(0.82 + Math.sin(a) * 0.08, 0.55 + Math.cos(a * 1.3) * 0.35, 0.3)
+    ref.current.scale.setScalar(0.8 + 0.3 * Math.sin(t * 3 + offset * 2))
+  })
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[0.05, 12, 12]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.1} transparent opacity={0.9} />
+    </mesh>
+  )
+}
+
+function LiveRing() {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.getElapsedTime()
+    const phase = (t * 0.7) % 1
+    ref.current.scale.setScalar(0.5 + phase * 1.4)
+    ref.current.material.opacity = 0.55 * (1 - phase)
+  })
+  return (
+    <mesh ref={ref} position={[0.82, 0.55, 0.28]}>
+      <torusGeometry args={[0.09, 0.008, 8, 32]} />
+      <meshStandardMaterial color="#10B981" emissive="#10B981" emissiveIntensity={0.8} transparent opacity={0.5} />
+    </mesh>
+  )
+}
+
+function UploadBar() {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.getElapsedTime()
+    const p = (Math.sin(t * 0.9) * 0.5 + 0.5)
+    ref.current.scale.x = Math.max(0.03, p)
+    ref.current.position.x = -(0.46 * (1 - p))
+  })
+  return (
+    <group position={[0, -0.95, 0.05]}>
+      <mesh>
+        <planeGeometry args={[0.92, 0.05]} />
+        <meshStandardMaterial color="#26282F" transparent opacity={0.9} />
+      </mesh>
+      <mesh ref={ref} position={[0, 0, 0.005]}>
+        <planeGeometry args={[0.92, 0.05]} />
+        <meshStandardMaterial color="#E4572E" emissive="#E4572E" emissiveIntensity={0.7} transparent opacity={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+function PhoneWorld() {
+  const group = useRef()
+  useFrame((state) => {
+    if (!group.current) return
+    const t = state.clock.getElapsedTime()
+    group.current.rotation.y = Math.sin(t * 0.4) * 0.28
+    group.current.rotation.x = Math.sin(t * 0.3) * 0.05
+  })
+  return (
+    <group ref={group} position={[0, -0.05, 0]}>
+      {/* phone body + screen */}
+      <mesh position={[0, 0, -0.02]}>
+        <boxGeometry args={[1.38, 2.55, 0.1]} />
+        <meshStandardMaterial color="#14151A" roughness={0.35} metalness={0.55} />
+      </mesh>
+      <mesh position={[0, 0, 0.035]}>
+        <planeGeometry args={[1.24, 2.4]} />
+        <meshStandardMaterial color="#0B0C10" roughness={0.25} />
+      </mesh>
+      {/* reels cycling inside the screen */}
+      {[0, 1, 2].map((i) => (
+        <ReelCard key={i} index={i} />
+      ))}
+      {/* live socket pings */}
+      <ChatPing offset={0} color="#38BDF8" />
+      <ChatPing offset={2.2} color="#E4572E" />
+      <LiveRing />
+      {/* cloudinary upload progress */}
+      <UploadBar />
+    </group>
+  )
+}
+
+export function LearnReelsScene() {
+  return (
+    <Canvas camera={{ position: [0, 0, 4.4], fov: 34 }} dpr={[1, 1.5]}>
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[3, 5, 5]} intensity={0.9} color="#ffffff" />
+      <pointLight position={[2.4, 1, 2.4]} intensity={1.6} color="#38BDF8" distance={7} />
+      <pointLight position={[-2.4, -1, 2]} intensity={1.2} color="#E4572E" distance={7} />
+      <PhoneWorld />
+    </Canvas>
+  )
+}

@@ -17,11 +17,20 @@ const GestureSenseScene = lazy(() =>
   import('./ProjectScenes').then((m) => ({ default: m.GestureSenseScene }))
 )
 
+const HyperlocalScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.HyperlocalScene }))
+)
+const LearnReelsScene = lazy(() =>
+  import('./ProjectScenes').then((m) => ({ default: m.LearnReelsScene }))
+)
+
 const scenes = {
   'JobSwipe AI': JobSwipeScene,
   IntelliEx: IntelliExScene,
   'Chess.ai': ChessScene,
   GestureSense: GestureSenseScene,
+  'Hyperlocal Hand': HyperlocalScene,
+  LearnReels: LearnReelsScene,
 }
 
 /** True on touch/coarse-pointer devices (phones, tablets) */
@@ -78,6 +87,26 @@ const projects = [
     tech: ['Python', 'OpenCV', 'Computer Vision', 'Image Processing'],
     live: '#',
     github: 'https://github.com/ankitkumarrrrr',
+  },
+  {
+    title: 'Hyperlocal Hand',
+    slug: 'hyperlocal-hand',
+    subtitle: 'Hyperlocal Errands Marketplace',
+    description:
+      "Buy back your time — delegate local errands to verified taskers nearby. Live GPS tracking, instant neighborhood matching, and escrow-backed payments turn errands into a fast, transparent micro-economy.",
+    tech: ['JavaScript', 'Live GPS Tracking', 'Escrow Payments', 'Real-Time Matching'],
+    live: '#',
+    github: 'https://github.com/ankitkumarrrrr/hyperlocal-hand-app',
+  },
+  {
+    title: 'LearnReels',
+    slug: 'learnreels',
+    subtitle: 'Real-Time Learning Backend',
+    description:
+      'Backend engine for the LearnReels learning app — Socket.io live notifications and chat, Cloudinary media pipeline, and the API surface the whole app runs on.',
+    tech: ['Node.js', 'Socket.io', 'Cloudinary', 'Real-Time Systems'],
+    live: '#',
+    github: 'https://github.com/ankitkumarrrrr/learnreels_backend',
   },
 ]
 

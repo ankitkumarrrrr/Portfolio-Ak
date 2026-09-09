@@ -109,6 +109,27 @@ const ArtMotive = () => (
   </svg>
 )
 
+// Location pin + hand (hyperlocal errands)
+const ArtHyperlocal = () => (
+  <svg {...svgProps}>
+    <path d="M46 10 C38.3 10 32 16.3 32 24 C32 34 46 48 46 48 C46 48 60 34 60 24 C60 16.3 53.7 10 46 10 Z" stroke={S.stroke} strokeWidth="2.4" />
+    <circle cx="46" cy="23.5" r="5" fill={S.red} />
+    <path d="M22 52 h14 l5 4 h12 l5 -4 h14" stroke={S.dim} strokeWidth="2" />
+    <path d="M66 24 l6 -6 m0 0 l-1 4.5 m1 -4.5 l-4.5 -1" stroke={S.dim} strokeWidth="2" />
+  </svg>
+)
+
+// Play screen + signal waves (LearnReels real-time backend)
+const ArtReels = () => (
+  <svg {...svgProps}>
+    <rect x="34" y="10" width="32" height="40" rx="3" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M44 26 l10 5 -10 5 Z" fill={S.red} />
+    <path d="M18 22 a14 14 0 0 1 8 8 M22 16 a20 20 0 0 1 12 12" stroke={S.dim} strokeWidth="2" />
+    <path d="M82 22 a-14 14 0 0 0 -8 8 M78 16 a-20 20 0 0 0 -12 12" stroke={S.dim} strokeWidth="2" />
+    <path d="M40 55 h20" stroke={S.red} strokeWidth="2.4" />
+  </svg>
+)
+
 const ART = {
   gitam: ArtEducation,
   thesci: ArtJob,
@@ -117,6 +138,8 @@ const ART = {
   jobswipe: ArtSwipe,
   chess: ArtKnight,
   goal: ArtMotive,
+  hyperlocal: ArtHyperlocal,
+  reels: ArtReels,
 }
 
 /* ── Board data ── */
@@ -130,6 +153,8 @@ const INITIAL_CARDS = [
   { id: 'jobswipe', kind: 'note',  label: 'JOBSWIPE AI',              caption: 'EXHIBIT A',         x: 56, y: 70, w: 156, h: 118, accent: false },
   { id: 'chess',    kind: 'note',  label: 'CHESS.AI',                 caption: 'EXHIBIT B',         x: 79, y: 53, w: 152, h: 118, accent: false },
   { id: 'goal',     kind: 'note',  label: 'BUILD WHAT MATTERS',       caption: 'MOTIVE',            x: 46, y: 12, w: 162, h: 112, accent: false },
+  { id: 'hyperlocal', kind: 'note', label: 'HYPERLOCAL HAND',         caption: 'EXHIBIT C',         x: 8,  y: 84, w: 168, h: 112, accent: false },
+  { id: 'reels',    kind: 'note',  label: 'LEARNREELS BACKEND',       caption: 'EXHIBIT D',         x: 88, y: 84, w: 172, h: 112, accent: false },
 ]
 
 // Ordered like an investigation: education → hackathon → prize → work →
@@ -146,10 +171,14 @@ const LINKS = [
   ['you', 'chess'],
   ['chess', 'goal'],
   ['you', 'goal'],
+  ['you', 'hyperlocal'],
+  ['you', 'reels'],
+  ['jobswipe', 'hyperlocal'],
+  ['thesci', 'reels'],
 ]
 
 const PIN_OFFSET = 12
-const TILT = { you: -2.5, gitam: 1.5, sih: -1.5, drone: 2, jobswipe: -2, chess: 1.5, goal: -1.5, thesci: -1 }
+const TILT = { you: -2.5, gitam: 1.5, sih: -1.5, drone: 2, jobswipe: -2, chess: 1.5, goal: -1.5, thesci: -1, hyperlocal: 2, reels: -1.5 }
 
 /* ── Case files — the written thing, shown on press ── */
 
@@ -211,6 +240,20 @@ const DETAILS = {
     body: [
       'Build things that matter.',
       'The through-line across every exhibit: real data, real users, real constraints. Not chasing stacks or trends — chasing problems worth solving, then solving them end to end.',
+    ],
+  },
+  hyperlocal: {
+    stamp: 'EXHIBIT C',
+    body: [
+      'Hyperlocal Hand — buy back your time by delegating local errands to verified taskers nearby.',
+      'Live GPS tracking follows every errand in real time; instant neighborhood matching pairs the task with the nearest verified tasker; escrow-backed payments hold funds until the job is done. Physical errands become a fast, transparent micro-economy.',
+    ],
+  },
+  reels: {
+    stamp: 'EXHIBIT D',
+    body: [
+      'LearnReels — the real-time backend engine behind a learning app.',
+      'Node.js and Socket.io power live notifications and chat as students watch; Cloudinary handles the media pipeline for every reel upload. One backend, real-time everything.',
     ],
   },
 }
