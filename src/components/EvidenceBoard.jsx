@@ -1,31 +1,141 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 /*
  * THE BOARD — a detective's evidence map, crime-scene style.
- * Cards (subject, education, employer, wins, exhibits) are pinned to a
- * corkboard and connected by red string. Strings are quadratic curves
- * that sag like real thread and re-render live while you drag a card.
+ * Every card carries an inked evidence illustration (hand-drawn SVG, no
+ * white backgrounds anywhere) on dark charcoal paper. Cards are pinned
+ * and connected by sagging red string that re-renders live while you drag.
  *
  *  - Hover a card  → its connections glow, everything else dims
  *  - Drag a card   → strings follow in real time
  *  - Close         → X button or Escape
  */
 
-const PORTRAIT = '/ankit-photo.jpg'
+const S = {
+  stroke: '#E8E6E3',
+  dim: 'rgba(232,230,227,0.55)',
+  red: '#E4572E',
+}
+
+/* ── Evidence illustrations — ink on dark paper, 100×60 canvas ── */
+
+const svgProps = {
+  viewBox: '0 0 100 60',
+  fill: 'none',
+  className: 'w-full h-full',
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+}
+
+// Graduation cap + scroll (education)
+const ArtEducation = () => (
+  <svg {...svgProps}>
+    <path d="M50 14 L20 24 L50 34 L80 24 Z" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M76 26 V38" stroke={S.dim} strokeWidth="2" />
+    <circle cx="76" cy="40.5" r="2" fill={S.red} />
+    <path d="M32 30 V40 C32 43 40 46 50 46 C60 46 68 43 68 40 V30" stroke={S.dim} strokeWidth="2" />
+    <path d="M42 53 H58" stroke={S.red} strokeWidth="2.4" />
+  </svg>
+)
+
+// Terminal with prompt + spark (AI developer)
+const ArtJob = () => (
+  <svg {...svgProps}>
+    <rect x="18" y="14" width="56" height="32" rx="2" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M18 21 H74" stroke={S.dim} strokeWidth="1.6" />
+    <circle cx="23" cy="17.5" r="1.2" fill={S.dim} />
+    <circle cx="27.5" cy="17.5" r="1.2" fill={S.dim} />
+    <path d="M26 30 l6 5 -6 5" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M38 41 H46" stroke={S.red} strokeWidth="2.4" />
+    <path d="M64 26 l1.8 3.6 3.6 1.8 -3.6 1.8 -1.8 3.6 -1.8 -3.6 -3.6 -1.8 3.6 -1.8 Z" fill={S.red} />
+  </svg>
+)
+
+// Trophy (SIH finalist)
+const ArtTrophy = () => (
+  <svg {...svgProps}>
+    <path d="M36 12 H64 V24 A14 13 0 0 1 36 24 Z" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M36 16 H27 A7 8 0 0 0 36 28" stroke={S.dim} strokeWidth="2" />
+    <path d="M64 16 H73 A7 8 0 0 1 64 28" stroke={S.dim} strokeWidth="2" />
+    <path d="M50 37 V44" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M42 48 H58 L56 44 H44 Z" stroke={S.stroke} strokeWidth="2.2" />
+    <path d="M50 18 l1.6 3.2 3.4 1.6 -3.4 1.6 -1.6 3.2 -1.6 -3.2 -3.4 -1.6 3.4 -1.6 Z" fill={S.red} />
+  </svg>
+)
+
+// Quadcopter (IIT Kanpur drone)
+const ArtDrone = () => (
+  <svg {...svgProps}>
+    <path d="M40 27 L30 19 M60 27 L70 19 M40 33 L30 41 M60 33 L70 41" stroke={S.dim} strokeWidth="2" />
+    <ellipse cx="28" cy="17.5" rx="10" ry="2.4" stroke={S.stroke} strokeWidth="2" />
+    <ellipse cx="72" cy="17.5" rx="10" ry="2.4" stroke={S.stroke} strokeWidth="2" />
+    <ellipse cx="28" cy="42.5" rx="10" ry="2.4" stroke={S.stroke} strokeWidth="2" />
+    <ellipse cx="72" cy="42.5" rx="10" ry="2.4" stroke={S.stroke} strokeWidth="2" />
+    <rect x="40" y="25" width="20" height="11" rx="2" stroke={S.stroke} strokeWidth="2.4" />
+    <circle cx="50" cy="41.5" r="2.6" fill={S.red} />
+  </svg>
+)
+
+// Stacked swipe cards (JobSwipe AI)
+const ArtSwipe = () => (
+  <svg {...svgProps}>
+    <rect x="26" y="10" width="38" height="26" rx="2.5" transform="rotate(-7 45 23)" stroke={S.dim} strokeWidth="2" />
+    <rect x="36" y="22" width="38" height="26" rx="2.5" transform="rotate(4 55 35)" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M50 42 c-4.5 -3.5 -7 -5.8 -7 -8.6 a3.6 3.6 0 0 1 7 -1.4 a3.6 3.6 0 0 1 7 1.4 c0 2.8 -2.5 5.1 -7 8.6 Z" fill={S.red} />
+    <path d="M14 30 h8 m0 0 l-3 -3 m3 3 l-3 3" stroke={S.dim} strokeWidth="2" />
+    <path d="M86 30 h-8 m0 0 l3 -3 m-3 3 l3 3" stroke={S.dim} strokeWidth="2" />
+  </svg>
+)
+
+// Knight (Chess.ai)
+const ArtKnight = () => (
+  <svg {...svgProps}>
+    <path
+      d="M36 48 C34 34 40 26 50 19 L47 12 L55 17 L60 14 L58 21 C66 26 68 36 66 48 Z"
+      stroke={S.stroke}
+      strokeWidth="2.4"
+    />
+    <path d="M52 24 l3 -3" stroke={S.dim} strokeWidth="2" />
+    <circle cx="53.5" cy="23.5" r="1.3" fill={S.red} />
+    <path d="M32 53 H70 L68 48 H34 Z" stroke={S.stroke} strokeWidth="2.2" />
+  </svg>
+)
+
+// Target with arrow (motive)
+const ArtMotive = () => (
+  <svg {...svgProps}>
+    <circle cx="54" cy="32" r="17" stroke={S.stroke} strokeWidth="2.4" />
+    <circle cx="54" cy="32" r="10" stroke={S.dim} strokeWidth="2" />
+    <circle cx="54" cy="32" r="3.4" fill={S.red} />
+    <path d="M22 8 L51 29" stroke={S.stroke} strokeWidth="2.4" />
+    <path d="M22 8 l7 1 M22 8 l1 7" stroke={S.dim} strokeWidth="2" />
+  </svg>
+)
+
+const ART = {
+  gitam: ArtEducation,
+  thesci: ArtJob,
+  sih: ArtTrophy,
+  drone: ArtDrone,
+  jobswipe: ArtSwipe,
+  chess: ArtKnight,
+  goal: ArtMotive,
+}
+
+/* ── Board data ── */
 
 const INITIAL_CARDS = [
-  { id: 'you',      kind: 'photo',   label: 'ANKIT KUMAR',              caption: 'THE SUBJECT',    x: 44, y: 42, w: 150, h: 185, accent: true },
-  { id: 'gitam',    kind: 'note',    label: 'B.TECH CSE\nGITAM Univ.',  caption: 'EDUCATION 2022—26', x: 18, y: 22, w: 175, h: 92,  accent: false },
-  { id: 'thesci',   kind: 'note',    label: 'AI DEVELOPER\nTheSci SolCielo', caption: 'EMPLOYER —', x: 72, y: 18, w: 190, h: 92,  accent: false },
-  { id: 'sih',      kind: 'note',    label: 'TOP 10 FINALIST\nSIH 2024', caption: 'NATIONAL LEVEL', x: 14, y: 52, w: 170, h: 88,  accent: true },
-  { id: 'drone',    kind: 'note',    label: '2ND PRIZE\nIIT Kanpur',    caption: 'AEROVISION DRONE', x: 33, y: 76, w: 165, h: 88, accent: true },
-  { id: 'jobswipe', kind: 'project', label: 'JOBSWIPE AI',              caption: 'EXHIBIT A',      x: 57, y: 72, w: 155, h: 92,  accent: false },
-  { id: 'chess',    kind: 'project', label: 'CHESS.AI',                 caption: 'EXHIBIT B',      x: 78, y: 56, w: 150, h: 92,  accent: false },
-  { id: 'goal',     kind: 'note',    label: 'BUILD THINGS\nTHAT MATTER', caption: 'MOTIVE',         x: 52, y: 16, w: 160, h: 80,  accent: false },
+  { id: 'you',      kind: 'photo', label: 'ANKIT KUMAR',              caption: 'THE SUBJECT',       x: 44, y: 40, w: 150, h: 185, accent: true },
+  { id: 'gitam',    kind: 'note',  label: 'B.TECH CSE · GITAM',       caption: 'EDUCATION 2022—26', x: 15, y: 20, w: 175, h: 122, accent: false },
+  { id: 'thesci',   kind: 'note',  label: 'AI DEVELOPER',             caption: 'THESCI SOLCIELO',   x: 70, y: 13, w: 185, h: 122, accent: false },
+  { id: 'sih',      kind: 'note',  label: 'TOP 10 · SIH 2024',        caption: 'NATIONAL LEVEL',    x: 11, y: 52, w: 172, h: 118, accent: true },
+  { id: 'drone',    kind: 'note',  label: '2ND PRIZE · IIT KANPUR',   caption: 'AEROVISION DRONE',  x: 30, y: 74, w: 168, h: 118, accent: true },
+  { id: 'jobswipe', kind: 'note',  label: 'JOBSWIPE AI',              caption: 'EXHIBIT A',         x: 56, y: 70, w: 156, h: 118, accent: false },
+  { id: 'chess',    kind: 'note',  label: 'CHESS.AI',                 caption: 'EXHIBIT B',         x: 79, y: 53, w: 152, h: 118, accent: false },
+  { id: 'goal',     kind: 'note',  label: 'BUILD WHAT MATTERS',       caption: 'MOTIVE',            x: 46, y: 12, w: 162, h: 112, accent: false },
 ]
 
-// The red string — every pair renders as a sagging curve between pins.
 const LINKS = [
   ['you', 'gitam'],
   ['you', 'thesci'],
@@ -40,8 +150,7 @@ const LINKS = [
   ['chess', 'goal'],
 ]
 
-const PIN_OFFSET = 12 // string ties to the pin just above each card
-
+const PIN_OFFSET = 12
 const TILT = { you: -2.5, gitam: 1.5, sih: -1.5, drone: 2, jobswipe: -2, chess: 1.5, goal: -1.5, thesci: -1 }
 
 export default function EvidenceBoard({ open, onClose }) {
@@ -56,7 +165,6 @@ export default function EvidenceBoard({ open, onClose }) {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Escape closes the board
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => {
@@ -99,18 +207,6 @@ export default function EvidenceBoard({ open, onClose }) {
     [pos]
   )
 
-  const onPointerDown = useCallback(
-    (e, card) => {
-      e.preventDefault()
-      const m = pos[card.id]
-      dragRef.current = { id: card.id, dx: e.clientX - m.x, dy: e.clientY - m.y }
-      setHovered(card.id)
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-    },
-    [pos] // eslint-disable-line react-hooks/exhaustive-deps
-  )
-
   const onPointerMove = useCallback(
     (e) => {
       if (!dragRef.current) return
@@ -134,6 +230,18 @@ export default function EvidenceBoard({ open, onClose }) {
     window.removeEventListener('pointermove', onPointerMove)
     window.removeEventListener('pointerup', onPointerUp)
   }, [onPointerMove]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onPointerDown = useCallback(
+    (e, card) => {
+      e.preventDefault()
+      const m = pos[card.id]
+      dragRef.current = { id: card.id, dx: e.clientX - m.x, dy: e.clientY - m.y }
+      setHovered(card.id)
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', onPointerUp)
+    },
+    [pos, onPointerMove, onPointerUp] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   if (!open) return null
 
@@ -183,7 +291,6 @@ export default function EvidenceBoard({ open, onClose }) {
           const hot = hovered && (s.a === hovered || s.b === hovered)
           return (
             <g key={s.key}>
-              {/* soft shadow thread underneath */}
               <path d={s.d} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth={3} strokeLinecap="round" transform="translate(2 3)" />
               <path
                 d={s.d}
@@ -193,7 +300,6 @@ export default function EvidenceBoard({ open, onClose }) {
                 strokeLinecap="round"
                 style={hot ? { filter: 'drop-shadow(0 0 6px rgba(228,87,46,0.7))' } : undefined}
               />
-              {/* pin heads the string ties to */}
               <circle cx={s.ax} cy={s.ay} r={2.6} fill="#E8E6E3" opacity={0.85} />
               <circle cx={s.bx} cy={s.by} r={2.6} fill="#E8E6E3" opacity={0.85} />
             </g>
@@ -207,6 +313,7 @@ export default function EvidenceBoard({ open, onClose }) {
         const isHot = hovered === c.id
         const isConnected = hovered && LINKS.some(([a, b]) => (a === hovered && b === c.id) || (b === hovered && a === c.id))
         const dim = hovered && !isHot && !isConnected
+        const Art = ART[c.id]
         return (
           <motion.div
             key={c.id}
@@ -228,27 +335,30 @@ export default function EvidenceBoard({ open, onClose }) {
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.65), inset -1px -2px 3px rgba(0,0,0,0.35)' }}
             />
 
-            {c.kind === 'photo' && (
-              <div className="w-full h-full bg-[#EDE9E1] p-2 pb-9 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-                <img src={PORTRAIT} alt="" className="w-full h-full object-cover object-top" draggable={false} />
-                <p className="absolute bottom-2.5 left-0 right-0 text-center text-[10px] font-display tracking-[0.25em] uppercase text-[#3a3630]">
+            {c.kind === 'photo' ? (
+              /* Subject card — real photo on a dark frame, no white anywhere */
+              <div className="w-full h-full bg-[#141417] border border-cream/15 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
+                <div className="w-full h-[calc(100%-34px)] overflow-hidden">
+                  <img src="/ankit-photo.jpg" alt="" className="w-full h-full object-cover object-top" draggable={false} />
+                </div>
+                <p className="h-[34px] flex items-center justify-center text-[11px] font-display tracking-[0.3em] uppercase text-cream">
                   {c.label}
                 </p>
+                {c.accent && <span className="absolute top-2 right-2 text-sm leading-none text-vermilion">★</span>}
               </div>
-            )}
-
-            {c.kind === 'note' && (
-              <div className="w-full h-full bg-[#EDE9E1] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-                <p className="font-display text-[13px] leading-snug text-[#2b2823] whitespace-pre-line">{c.label}</p>
-                <p className="absolute bottom-2 left-3 text-[8px] font-mono uppercase tracking-widest text-[#8a8378]">{c.caption}</p>
-                {c.accent && <span className="absolute top-1.5 right-2 text-sm leading-none text-[#C4302B]">★</span>}
-              </div>
-            )}
-
-            {c.kind === 'project' && (
-              <div className="w-full h-full bg-[#17171A] border border-vermilion/40 p-3 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
-                <p className="font-serif text-lg text-cream font-light leading-tight">{c.label}</p>
-                <p className="text-[8px] font-mono uppercase tracking-widest text-vermilion/80">{c.caption}</p>
+            ) : (
+              /* Evidence card — dark charcoal paper, inked illustration, no white */
+              <div className="w-full h-full bg-[#1D1D21] border border-cream/15 shadow-[0_10px_30px_rgba(0,0,0,0.6)] flex flex-col">
+                <div className="flex-1 min-h-0 px-3 pt-3">
+                  {Art && <Art />}
+                </div>
+                <div className="px-3 pb-2.5 pt-1.5 border-t border-cream/10">
+                  <p className="text-[10px] font-display tracking-[0.18em] uppercase text-cream truncate">{c.label}</p>
+                  <p className="text-[8px] font-mono uppercase tracking-widest text-cream-dim/50 mt-0.5 flex items-center gap-1.5">
+                    {c.accent && <span className="text-vermilion">★</span>}
+                    {c.caption}
+                  </p>
+                </div>
               </div>
             )}
           </motion.div>
