@@ -69,9 +69,9 @@ export default function CustomCursor() {
 
   return (
     <>
-      {/* Main dot */}
+      {/* Main dot — above every overlay (board, preloader) so the pointer is never invisible */}
       <motion.div
-        className="fixed top-0 left-0 z-[10000] pointer-events-none mix-blend-difference"
+        className="fixed top-0 left-0 z-[25000] pointer-events-none mix-blend-difference"
         style={{
           x,
           y,
@@ -92,7 +92,7 @@ export default function CustomCursor() {
 
       {/* Outer ring */}
       <motion.div
-        className="fixed top-0 left-0 z-[10000] pointer-events-none"
+        className="fixed top-0 left-0 z-[25000] pointer-events-none"
         style={{
           x,
           y,
