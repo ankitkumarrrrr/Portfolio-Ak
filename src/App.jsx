@@ -6,6 +6,7 @@ import Preloader from './components/Preloader'
 import FluidBackground from './components/FluidBackground'
 import CustomCursor from './components/CustomCursor'
 import Header from './components/Header'
+import EvidenceBoard from './components/EvidenceBoard'
 
 /**
  * Scroll behavior for route changes: plain navigations go to the top of
@@ -41,6 +42,7 @@ function ScrollManager() {
 
 export default function App() {
   const [loaded, setLoaded] = useState(false)
+  const [boardOpen, setBoardOpen] = useState(false)
 
   return (
     <div className="relative min-h-screen bg-charcoal">
@@ -64,6 +66,19 @@ export default function App() {
 
       {/* Scroll behavior for route changes */}
       <ScrollManager />
+
+      {/* THE BOARD — case-file easter egg */}
+      <button
+        onClick={() => setBoardOpen(true)}
+        className="fixed bottom-6 right-6 z-[9500] flex items-center gap-2.5 bg-[#EDE9E1] text-charcoal px-4 py-2.5 shadow-[0_6px_20px_rgba(0,0,0,0.5)] rotate-[-2deg] hover:rotate-0 transition-transform duration-300"
+        data-cursor-hover
+        aria-label="Open the evidence board"
+      >
+        <span className="w-2.5 h-2.5 rounded-full bg-vermilion shadow-[inset_-1px_-2px_2px_rgba(0,0,0,0.35)]" />
+        <span className="text-[11px] font-display tracking-[0.25em] uppercase font-semibold">The Board</span>
+      </button>
+
+      <EvidenceBoard open={boardOpen} onClose={() => setBoardOpen(false)} />
 
       {/* Header */}
       <Header />
