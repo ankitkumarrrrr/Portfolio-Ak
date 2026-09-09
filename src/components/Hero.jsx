@@ -193,8 +193,8 @@ export default function Hero() {
             >
               {[
                 { value: '7.6', label: 'CGPA' },
-                { value: '5+', label: 'Projects' },
-                { value: '2', label: 'Awards' },
+                { value: '6', label: 'Projects' },
+                { value: '4', label: 'Awards' },
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col">
                   <span className="font-serif text-2xl md:text-3xl text-cream font-light">
